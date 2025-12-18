@@ -19,7 +19,12 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: false,
     set(value) {
-      const capitalized = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+      // Handle compound names like "Mohamed-Amine" or "Fatima Ezzahra"
+      const words = value.split(/[-\s]/);
+      const separator = value.includes('-') ? '-' : ' ';
+      const capitalized = words
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(separator);
       this.setDataValue('prenom', capitalized);
     },
   },
@@ -44,6 +49,14 @@ const User = sequelize.define('User', {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
   },
+  date_modification: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+  must_change_password: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
 }, {
   tableName: 'users',
   timestamps: false,
@@ -57,6 +70,7 @@ const User = sequelize.define('User', {
       if (user.changed('password')) {
         user.password = await bcrypt.hash(user.password, 10);
       }
+      user.date_modification = new Date();
     },
   },
 });
@@ -66,4 +80,3 @@ User.prototype.validatePassword = async function(password) {
 };
 
 export default User;
-

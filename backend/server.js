@@ -11,6 +11,8 @@ import agentsRoutes from './routes/agents.js';
 import compteursRoutes from './routes/compteurs.js';
 import relevesRoutes from './routes/releves.js';
 import dashboardRoutes from './routes/dashboard.js';
+import reportsRoutes from './routes/reports.js';
+import simulationRoutes from './routes/simulation.js';
 
 dotenv.config();
 
@@ -28,6 +30,8 @@ app.use('/api/agents', agentsRoutes);
 app.use('/api/compteurs', compteursRoutes);
 app.use('/api/releves', relevesRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/simulation', simulationRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -41,7 +45,7 @@ async function startServer() {
     console.log('✅ Connexion à la base de données réussie.');
 
     // Sync models (create tables)
-    await sequelize.sync({ force: false }); // Set to true to drop and recreate tables
+    await sequelize.sync({ alter: true }); // Use alter to update schema without dropping
     console.log('✅ Modèles synchronisés avec la base de données.');
 
     app.listen(PORT, () => {
@@ -55,4 +59,3 @@ async function startServer() {
 }
 
 startServer();
-

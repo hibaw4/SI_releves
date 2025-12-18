@@ -10,6 +10,8 @@ const Layout = () => {
     { path: '/compteurs', label: 'Compteurs', icon: '🔢' },
     { path: '/agents', label: 'Agents', icon: '👥' },
     { path: '/releves', label: 'Relevés', icon: '📋' },
+    { path: '/reports', label: 'Rapports', icon: '📈' },
+    { path: '/simulation', label: 'Simulations', icon: '🔄' },
   ];
 
   if (isSuperAdmin()) {
@@ -30,7 +32,7 @@ const Layout = () => {
               key={item.path}
               to={item.path}
               className={`flex items-center px-6 py-3 transition-colors ${
-                location.pathname === item.path
+                location.pathname === item.path || location.pathname.startsWith(item.path + '/')
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-300 hover:bg-gray-800'
               }`}
@@ -46,6 +48,12 @@ const Layout = () => {
             <p className="font-semibold">{user?.prenom} {user?.nom}</p>
             <p className="text-xs text-gray-500">{user?.role}</p>
           </div>
+          <Link
+            to="/change-password"
+            className="block w-full text-center text-sm text-gray-400 hover:text-white mb-3 transition-colors"
+          >
+            Changer le mot de passe
+          </Link>
           <button
             onClick={logout}
             className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition-colors"
@@ -64,4 +72,3 @@ const Layout = () => {
 };
 
 export default Layout;
-
