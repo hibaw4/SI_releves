@@ -161,3 +161,4 @@ Le script de seed crée également:
 - La consommation est calculée automatiquement lors de la création d'un relevé
 - L'index actuel du compteur est mis à jour automatiquement après chaque relevé
 
+# CI/CD Pipeline Active
