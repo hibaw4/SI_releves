@@ -13,21 +13,15 @@ pipeline {
             steps {
                 checkout scm
                 sh 'echo "📥 Code checked out successfully"'
-                sh 'ls -la'
             }
         }
         
-        stage('Build & Deploy') {
+        stage('Run Tests') {
             steps {
                 script {
-                    // All build and deploy happens on VPS via SSH
                     sh """
-                        echo "🚀 Deploying to VPS..."
-                        
                         ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${VPS_USER}@${VPS_HOST} '
                             set -e
-                            
-                            echo "📦 Pulling latest code..."
                             cd ${REPO_DIR}
                             git fetch origin
                             git checkout feature/complete-implementation
@@ -35,11 +29,34 @@ pipeline {
                             
                             echo "🧪 Running Backend Tests..."
                             cd ${REPO_DIR}/backend
-                            docker run --rm -v \$(pwd):/app -w /app node:20-alpine sh -c "npm install && npm test" || echo "Tests completed"
+                            docker run --rm -v \$(pwd):/app -w /app node:20-alpine sh -c "npm install && npm run test:ci" || true
                             
                             echo "🧪 Running Frontend Tests..."
                             cd ${REPO_DIR}/frontend
-                            docker run --rm -v \$(pwd):/app -w /app node:20-alpine sh -c "npm install && npm test" || echo "Tests completed"
+                            docker run --rm -v \$(pwd):/app -w /app node:20-alpine sh -c "npm install && npm run test:ci" || true
+                            
+                            echo "✅ Tests completed!"
+                        '
+                        
+                        # Copy test results from VPS
+                        scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${VPS_USER}@${VPS_HOST}:${REPO_DIR}/backend/test-results.xml backend-results.xml || true
+                        scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${VPS_USER}@${VPS_HOST}:${REPO_DIR}/frontend/test-results.xml frontend-results.xml || true
+                    """
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: '*-results.xml'
+                }
+            }
+        }
+        
+        stage('Build Docker Images') {
+            steps {
+                script {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${VPS_USER}@${VPS_HOST} '
+                            set -e
                             
                             echo "🔨 Building Backend Docker image..."
                             cd ${REPO_DIR}/backend
@@ -48,6 +65,20 @@ pipeline {
                             echo "🔨 Building Frontend Docker image..."
                             cd ${REPO_DIR}/frontend
                             docker build -t si-releves-frontend:latest .
+                            
+                            echo "✅ Docker images built!"
+                        '
+                    """
+                }
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                script {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${VPS_USER}@${VPS_HOST} '
+                            set -e
                             
                             echo "🚀 Deploying containers..."
                             cd ${APP_DIR}
@@ -71,27 +102,17 @@ pipeline {
                         echo "🏥 Running health checks..."
                         sleep 5
                         
-                        # Check API health
                         API_STATUS=\$(curl -s -o /dev/null -w "%{http_code}" https://mcharfi.clueleak.com/api/health || echo "000")
                         echo "API Status: \$API_STATUS"
                         
-                        if [ "\$API_STATUS" = "200" ]; then
-                            echo "✅ API is healthy"
-                        else
-                            echo "⚠️ API returned \$API_STATUS (may still be starting)"
-                        fi
-                        
-                        # Check Frontend
                         FRONTEND_STATUS=\$(curl -s -o /dev/null -w "%{http_code}" https://mcharfi.clueleak.com/ || echo "000")
                         echo "Frontend Status: \$FRONTEND_STATUS"
                         
-                        if [ "\$FRONTEND_STATUS" = "200" ]; then
-                            echo "✅ Frontend is healthy"
+                        if [ "\$API_STATUS" = "200" ] && [ "\$FRONTEND_STATUS" = "200" ]; then
+                            echo "✅ All health checks passed!"
                         else
-                            echo "⚠️ Frontend returned \$FRONTEND_STATUS (may still be starting)"
+                            echo "⚠️ Some services may still be starting..."
                         fi
-                        
-                        echo "🎉 Pipeline completed!"
                     """
                 }
             }

@@ -9,6 +9,7 @@
     "dev": "node --watch server.js",
     "seed": "node seed.js",
     "test": "vitest run",
+    "test:ci": "vitest run --reporter=junit --outputFile=test-results.xml",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
