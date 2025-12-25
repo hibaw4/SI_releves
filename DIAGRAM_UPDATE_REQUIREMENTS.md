@@ -51,16 +51,41 @@ After reviewing all implemented features in the application and comparing them w
 
 **Implemented Features:**
 - ✅ Simulation page (`/simulation`) for ERP data import simulation
-- ✅ Client import simulation from SI Commercial
-- ✅ Agent import simulation from SI RH
-- ✅ Billing export simulation to SI Facturation
-- ✅ Mobile reading generation simulation
+- ✅ **Status display** - Shows current database state (agents, compteurs, releves counts)
+- ✅ **Client import simulation** from SI Commercial:
+  - Creates 2 meters per client (EAU + ELECTRICITE)
+  - Skips addresses that already have 2 meters
+  - Returns detailed results (created, skipped with reasons, errors)
+  - Console logging for debugging
+- ✅ **Agent import simulation** from SI RH:
+  - Creates agents with quartier assignment
+  - Skips agents with duplicate phone numbers
+  - Returns detailed results
+- ✅ **Billing export simulation** to SI Facturation:
+  - Month/year selection interface
+  - Collects all readings for selected period
+  - Formats data for billing system (compteur_id, type, client, adresse, consommation, unit)
+  - Returns summary (total relevés, eau/électricité counts, total consumption)
+  - Console logging of exported data
+- ✅ **Mobile reading generation simulation**:
+  - Generates realistic readings for all meters
+  - Random consumption values (5-30 m³ for water, 100-500 kWh for electricity)
+  - Assigns random agents to readings
+  - Updates meter current index
+  - Returns generation summary
+- ✅ **Architecture diagram visualization** - Shows data flow between systems
+- ✅ **Quick guide** - Step-by-step instructions for using simulations
 
 **Required Updates:**
+- Add use case: **"Consulter statut simulations"** (View simulation status) - Utilisateur Backoffice
 - Add use case: **"Simuler import clients ERP"** (Simulate client import from ERP) - Utilisateur Backoffice
+  - Details: Creates 2 meters per client, skips existing addresses
 - Add use case: **"Simuler import agents ERP"** (Simulate agent import from ERP) - Utilisateur Backoffice
+  - Details: Creates agents with quartier, skips duplicates
 - Add use case: **"Simuler export facturation"** (Simulate billing export) - Utilisateur Backoffice
+  - Details: Month/year selection, formats consumption data for billing system
 - Add use case: **"Générer relevés mobiles simulés"** (Generate simulated mobile readings) - Utilisateur Backoffice
+  - Details: Generates realistic readings for all meters with random consumption
 
 **Actor Associations:**
 - Utilisateur Backoffice → All simulation use cases
@@ -114,18 +139,42 @@ After reviewing all implemented features in the application and comparing them w
 **Status:** ✅ IN DIAGRAMS (but could be more detailed)
 
 **Implemented Features:**
-- ✅ Monthly readings report with PDF export
-- ✅ Consumption evolution report with charts
-- ✅ Interactive date selection (month/year)
+
+**Monthly Report Tab:**
+- ✅ **Month/Year selection** - Interactive dropdowns for period selection
+- ✅ **Summary cards** - Total relevés, total agents, average per agent
+- ✅ **Distribution by quartier**:
+  - Bar chart visualization (total relevés + agent count)
+  - Detailed table with: quartier, agent count, total relevés, average daily per agent
+- ✅ **PDF export** - Printable format with all monthly data
+- ✅ **Period label** - Human-readable period (e.g., "décembre 2025")
+
+**Consumption Evolution Report Tab:**
+- ✅ **Year-over-year comparison** - Current year vs. previous year
+- ✅ **Yearly totals cards**:
+  - Eau (m³): current year, last year, evolution percentage with arrow indicator
+  - Électricité (kWh): current year, last year, evolution percentage with arrow indicator
+- ✅ **Monthly trend chart**:
+  - Line chart with 4 lines: Eau current year, Eau last year (dashed), Électricité current year, Électricité last year (dashed)
+  - Interactive tooltips
+- ✅ **Monthly data table**:
+  - Columns: Month, Eau current year, Eau last year, Evolution %, Électricité current year, Électricité last year, Evolution %
+  - Color-coded evolution (red for increase, green for decrease)
+- ✅ **PDF export** - Printable format with all consumption data
+- ✅ **Evolution calculations** - Percentage change month-over-month and year-over-year
 
 **Current State:**
-- "Exporter Rapports PDF (Mensuel, Trends)" exists
-- Could be split into more granular use cases
+- "Exporter Rapports PDF (Mensuel, Trends)" exists but is too generic
+- Missing granular use cases for each report type
 
 **Required Updates:**
-- Split into: **"Consulter rapport mensuel"** (View monthly report)
-- Split into: **"Consulter évolution consommation"** (View consumption evolution)
-- Keep: **"Exporter Rapports PDF"** as separate use case
+- Split into: **"Consulter rapport mensuel"** (View monthly report) - Utilisateur Backoffice
+  - Details: Month/year selection, summary cards, quartier distribution (chart + table)
+- Split into: **"Consulter évolution consommation"** (View consumption evolution) - Utilisateur Backoffice
+  - Details: Year-over-year comparison, monthly trends, evolution percentages
+- Keep: **"Exporter Rapports PDF"** as separate use case with two variants:
+  - "Exporter rapport mensuel PDF"
+  - "Exporter rapport évolution PDF"
 
 ---
 
@@ -379,5 +428,108 @@ These are **enhancements** that improve the system beyond the original requireme
 
 ---
 
-*Report generated by analyzing implemented codebase features against existing project diagrams.*
+## 9. Detailed Feature Analysis
+
+### 9.1 Simulation Page - Complete Feature List
+
+**All Features Implemented:**
+
+1. **Status Endpoint** (`GET /api/simulation/status`)
+   - Returns current database counts (agents, compteurs, releves)
+   - Shows available simulated data (clients, agents)
+   - Lists available simulation endpoints
+
+2. **Client Import** (`POST /api/simulation/erp/clients`)
+   - Processes 10 simulated clients from SI Commercial
+   - Creates 2 meters per client (EAU + ELECTRICITE)
+   - Skips addresses that already have 2 meters
+   - Returns: created count, skipped count (with reasons), errors
+   - Console logging for each step
+
+3. **Agent Import** (`POST /api/simulation/erp/agents`)
+   - Processes 5 simulated agents from SI RH
+   - Creates agents with quartier assignment
+   - Skips agents with duplicate phone numbers
+   - Returns: created count, skipped count (with reasons), errors
+
+4. **Billing Export** (`POST /api/simulation/facturation/send`)
+   - Accepts month/year parameters
+   - Collects all readings for selected period
+   - Formats data: compteur_id, type, client, adresse, période, consommation, unit, date_releve
+   - Returns summary: total relevés, eau/électricité counts, total consumption
+   - Console logging of exported data structure
+
+5. **Reading Generation** (`POST /api/simulation/generate-readings`)
+   - Generates readings for all meters
+   - Random consumption: 5-30 m³ (water), 100-500 kWh (electricity)
+   - Assigns random agents
+   - Updates meter current index
+   - Returns: generated count, errors
+
+6. **UI Features:**
+   - Real-time status display (3 cards: agents, compteurs, relevés)
+   - Result alerts with success/error states
+   - Detailed skip reasons display
+   - Loading states for each action
+   - Architecture diagram visualization
+   - Quick guide instructions
+   - Console logging instructions
+
+### 9.2 Reports Page - Complete Feature List
+
+**Monthly Report Features:**
+
+1. **Period Selection**
+   - Month dropdown (12 months)
+   - Year dropdown (current year - 4 years)
+
+2. **Summary Statistics**
+   - Total Relevés card
+   - Total Agents card
+   - Average per Agent card
+
+3. **Quartier Distribution**
+   - Bar chart: total relevés + agent count per quartier
+   - Table: quartier, agent count, total relevés, average daily per agent
+   - Handles "Non assigné" quartier
+
+4. **PDF Export**
+   - Printable HTML format
+   - Includes summary, quartier distribution table
+   - Styled for printing
+
+**Consumption Evolution Report Features:**
+
+1. **Yearly Totals**
+   - Eau card: current year, last year, evolution % with arrow
+   - Électricité card: current year, last year, evolution % with arrow
+   - Color-coded evolution (red ↑ increase, green ↓ decrease)
+
+2. **Monthly Trend Chart**
+   - Line chart with 4 series:
+     - Eau current year (solid blue)
+     - Eau last year (dashed light blue)
+     - Électricité current year (solid yellow)
+     - Électricité last year (dashed light yellow)
+   - Interactive tooltips
+   - Responsive container
+
+3. **Monthly Data Table**
+   - Columns: Month, Eau current year, Eau last year, Evolution %, Électricité current year, Électricité last year, Evolution %
+   - Color-coded evolution percentages
+   - 12 months of data
+
+4. **PDF Export**
+   - Printable HTML format
+   - Includes yearly totals, monthly data table
+   - Styled for printing
+
+5. **Calculations**
+   - Monthly averages per type
+   - Year-over-year evolution percentages
+   - Handles division by zero (returns 0%)
+
+---
+
+*Report generated by analyzing implemented codebase features against existing project diagrams. All features from Simulation and Reports pages have been thoroughly documented.*
 
